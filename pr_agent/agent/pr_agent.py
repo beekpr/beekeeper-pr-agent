@@ -10,7 +10,7 @@ from pr_agent.git_providers.utils import apply_repo_settings
 from pr_agent.log import get_logger
 from pr_agent.tools.pr_add_docs import PRAddDocs
 from pr_agent.tools.pr_code_suggestions import PRCodeSuggestions
-from pr_agent.tools.pr_best_practices import PRBestPracticesCheck
+from pr_agent.tools.beekeeper_pr_best_practices import BeekeeperPRBestPracticesCheck
 from pr_agent.tools.pr_config import PRConfig
 from pr_agent.tools.pr_description import PRDescription
 from pr_agent.tools.pr_generate_labels import PRGenerateLabels
@@ -26,7 +26,7 @@ command2class = {
     "answer": PRReviewer,
     "review": PRReviewer,
     "review_pr": PRReviewer,
-    "best_practices": PRBestPracticesCheck,
+    "beekeeper_best_practices": BeekeeperPRBestPracticesCheck,
     "describe": PRDescription,
     "describe_pr": PRDescription,
     "improve": PRCodeSuggestions,

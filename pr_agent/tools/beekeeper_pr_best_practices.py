@@ -20,7 +20,7 @@ from pr_agent.git_providers import get_git_provider_with_context
 from pr_agent.git_providers.git_provider import get_main_pr_language, GitProvider
 from pr_agent.log import get_logger
 
-class PRBestPracticesCheck:
+class BeekeeperPRBestPracticesCheck:
     def __init__(self, pr_url: str, cli_mode=False, args: list = None,
                  ai_handler: partial[BaseAiHandler] = LiteLLMAIHandler):
         self.git_provider = get_git_provider_with_context(pr_url)
@@ -72,13 +72,13 @@ class PRBestPracticesCheck:
             "date": datetime.now().strftime('%Y-%m-%d'),
             "duplicate_prompt_examples": get_settings().config.get('duplicate_prompt_examples', False),
         }
-        self.pr_best_practices_prompt_system = get_settings().pr_best_practices_prompt.system
+        self.pr_best_practices_prompt_system = get_settings().beekeeper_pr_best_practices_prompt.system
 
         self.token_handler = TokenHandler(
             self.git_provider.pr,
             self.vars,
             self.pr_best_practices_prompt_system,
-            get_settings().pr_best_practices_prompt.user
+            get_settings().beekeeper_pr_best_practices_prompt.user
         )
 
         self.progress = "## Checking PR for Best Practices Compliance\n\n"
@@ -203,7 +203,7 @@ class PRBestPracticesCheck:
         variables["diff_no_line_numbers"] = patches_diff_no_line_number
         environment = Environment(undefined=StrictUndefined)
         system_prompt = environment.from_string(self.pr_best_practices_prompt_system).render(variables)
-        user_prompt = environment.from_string(get_settings().pr_best_practices_prompt.user).render(variables)
+        user_prompt = environment.from_string(get_settings().beekeeper_pr_best_practices_prompt.user).render(variables)
         response, _ = await self.ai_handler.chat_completion(
             model=model,
             temperature=get_settings().config.temperature,
