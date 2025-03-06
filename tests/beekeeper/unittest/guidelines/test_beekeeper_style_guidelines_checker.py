@@ -1,11 +1,5 @@
 import os
-import sys
 import unittest
-from unittest.mock import patch, MagicMock
-import tempfile
-import shutil
-from pathlib import Path
-
 
 
 from pr_agent.beekeeper.guidelines.beekeeper_style_guidelines_checker import BeekeeperStyleGuidelinesChecker
@@ -22,7 +16,7 @@ class TestBeekeeperStyleGuidelinesChecker(unittest.TestCase):
         )
 
         # Verify the guidelines file exists
-        self.rdbms_file_path = os.path.join(self.test_resources_dir, "rdbms-guidelines.md")
+        self.rdbms_file_path = os.path.join(self.test_resources_dir, "rdbms-guidelines.sql.md")
         if not os.path.exists(self.rdbms_file_path):
             raise FileNotFoundError(f"RDBMS guidelines file not found at {self.rdbms_file_path}")
 
@@ -56,7 +50,7 @@ class TestBeekeeperStyleGuidelinesChecker(unittest.TestCase):
                     plain_text = text_maker.handle(markdown.markdown(content))
 
                     # Use a key that matches what the checker expects
-                    guidelines["rdbms-guidelines.md"] = {
+                    guidelines["rdbms-guidelines.sql.md"] = {
                         "markdown": content,
                         "plain_text": plain_text,
                         "file_types": ["sql"]  # Explicitly set for SQL files

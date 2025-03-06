@@ -1,13 +1,22 @@
 # pr_agent/beekeeper/guidelines/beekeeper_style_guidelines_fetcher.py
 import os
 from loguru import logger
-from github import Github
 from pathlib import Path
 import markdown
 import html2text
 
+from pr_agent.beekeeper.github.github_helpers import get_all_files_of_type_in_repo_recursive
+
+BEEKEEPER_GUIDELINES_FILENAME_FORMAT = '[random-name].[target-extension].md'
+
 class BeekeeperStyleGuidelinesFetcher:
-    def __init__(self, repo_url, token=None, branch="main", target_folder=None):
+    def __init__(
+            self,
+            repo_url='git@github.com:beekpr/beekeeper-engineering-hub',
+            token=None,
+            branch="master",
+            target_folder='guidelines'
+    ):
         """
         Fetch style guidelines from a GitHub repository
 
@@ -23,53 +32,46 @@ class BeekeeperStyleGuidelinesFetcher:
         self.target_folder = target_folder
         self.guidelines_cache = {}
 
+
     def fetch_guidelines(self, force_refresh=False):
         """Fetch all markdown files from the guidelines repository"""
         if self.guidelines_cache and not force_refresh:
             return self.guidelines_cache
 
+        files = get_all_files_of_type_in_repo_recursive(self.token, self.repo_url, self.target_folder, self.branch, '.md')
+        guidelines = self.parse_guidelines(files)
+
+        self.guidelines_cache = guidelines
+        logger.info(f"Fetched {len(guidelines)} style guideline files from {self.repo_url}/{self.target_folder or ''}")
+        return guidelines
+
+
+    def parse_guidelines(self, files):
+        guidelines = {}
         try:
-            g = Github(self.token)
-            repo = g.get_repo(self.repo_url)
+            for file in files:
+                file_content = file.decoded_content.decode('utf-8')
+                # Convert markdown to plain text
+                text_maker = html2text.HTML2Text()
+                text_maker.ignore_links = False
+                plain_text = text_maker.handle(markdown.markdown(file_content))
 
-            guidelines = {}
+                # Extract target extension from filename if it follows the naming convention
+                filename = Path(file.path).name
+                parts = filename.split('.')
 
-            # Start from target folder or root
-            start_path = self.target_folder or ""
-            try:
-                contents = repo.get_contents(start_path, ref=self.branch)
-            except Exception as e:
-                logger.error(f"Error accessing path '{start_path}': {str(e)}")
-                return {}
+                if len(parts) >= 3:  # Check for [name].[ext].md pattern
+                    file_types = [parts[-2].lower()]  # Get the extension part
 
-            # Process markdown files recursively
-            while contents:
-                content_file = contents.pop(0)
-                if content_file.type == "dir":
-                    contents.extend(repo.get_contents(content_file.path, ref=self.branch))
-                elif content_file.path.endswith('.md'):
-                    try:
-                        file_content = content_file.decoded_content.decode('utf-8')
-
-                        # Convert markdown to plain text
-                        text_maker = html2text.HTML2Text()
-                        text_maker.ignore_links = False
-                        plain_text = text_maker.handle(markdown.markdown(file_content))
-
-                        guidelines[content_file.path] = {
-                            "markdown": file_content,
-                            "plain_text": plain_text
-                        }
-                    except Exception as e:
-                        logger.error(f"Error processing file {content_file.path}: {str(e)}")
-
-            self.guidelines_cache = guidelines
-            logger.info(f"Fetched {len(guidelines)} style guideline files from {self.repo_url}/{self.target_folder or ''}")
-            return guidelines
-
+                guidelines[file.path] = {
+                    "markdown": file_content,
+                    "plain_text": plain_text,
+                    "file_types": file_types  # Store the target extension
+                }
         except Exception as e:
-            logger.error(f"Error fetching style guidelines: {str(e)}")
-            return {}
+            logger.error(f"Error processing file {file.path}: {str(e)}")
+        return guidelines
+
 
     def get_relevant_guidelines(self, file_paths):
         """Get guidelines relevant to the given file paths"""
@@ -77,19 +79,26 @@ class BeekeeperStyleGuidelinesFetcher:
         if not all_guidelines:
             return {}
 
-        # Extract file extensions
-        extensions = {Path(file).suffix.lstrip('.') for file in file_paths if Path(file).suffix}
+        # Extract file extensions from PR files
+        extensions = {Path(file).suffix.lstrip('.').lower() for file in file_paths if Path(file).suffix}
 
         # Match guidelines to file extensions
         relevant_guidelines = {}
         for guideline_path, content in all_guidelines.items():
-            # Simple matching based on file extension or language indicators
-            for ext in extensions:
-                if ext.lower() in guideline_path.lower():
+            # First check if we have explicit file_types defined
+            if content.get("file_types"):
+                if any(ext in content["file_types"] for ext in extensions):
                     relevant_guidelines[guideline_path] = content
-                    break  # Once matched, no need to check other extensions
+                    continue
 
-            # Also consider general guidelines that might not match specific extensions
+            # Fallback: check for extension in the guideline filename
+            guideline_filename = Path(guideline_path).name
+            parts = guideline_filename.split('.')
+            if len(parts) >= 3 and parts[-2].lower() in extensions:
+                relevant_guidelines[guideline_path] = content
+                continue
+
+            # Also consider general guidelines
             if "general" in guideline_path.lower() or "common" in guideline_path.lower():
                 relevant_guidelines[guideline_path] = content
 
