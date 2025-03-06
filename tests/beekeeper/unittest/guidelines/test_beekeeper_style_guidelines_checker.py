@@ -1,6 +1,6 @@
 import os
 import unittest
-
+from pathlib import Path
 
 from pr_agent.beekeeper.guidelines.beekeeper_style_guidelines_checker import BeekeeperStyleGuidelinesChecker
 from pr_agent.beekeeper.guidelines.beekeeper_style_guidelines_fetcher import BeekeeperStyleGuidelinesFetcher
@@ -9,11 +9,9 @@ from pr_agent.beekeeper.guidelines.beekeeper_style_guidelines_fetcher import Bee
 class TestBeekeeperStyleGuidelinesChecker(unittest.TestCase):
     def setUp(self):
         # Find the location of the real guidelines file
-        self.project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../'))
-        self.test_resources_dir = os.path.join(
-            self.project_root,
-            "tests", "beekeeper", "unittest", "resources", "guidelines"
-        )
+        current_file = Path(__file__)
+        self.project_root = current_file.parents[3]
+        self.test_resources_dir = self.project_root / "beekeeper" / "unittest" / "resources" / "guidelines"
 
         # Verify the guidelines file exists
         self.rdbms_file_path = os.path.join(self.test_resources_dir, "rdbms-guidelines.sql.md")
