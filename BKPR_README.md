@@ -20,20 +20,30 @@ Image is published to `quay.io/beekeeper/beekeeper-pr-agent:latest`
 Add this Github Action workflow file to your repository in `.github/workflows/pr_agent.yml`:
 
 ```yaml
+name: PR Agent
+
 on:
   pull_request:
     types: [opened, reopened, ready_for_review]
   issue_comment:
+
 jobs:
   pr_agent_job:
     if: ${{ github.event.sender.type != 'Bot' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       issues: write
       pull-requests: write
       contents: write
     name: Run pr agent on every pull request, respond to user comments
     steps:
+      - name: Login to Quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: "beekeeper+githubactions"
+          password: ${{ secrets.BKPR_QUAY_PASSWORD }}
+      
       - name: PR Agent action step
         id: pragent
         uses: beekpr/beekeeper-pr-agent@master
