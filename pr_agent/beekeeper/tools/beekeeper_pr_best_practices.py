@@ -15,6 +15,8 @@ from pr_agent.algo.pr_processing import (add_ai_metadata_to_diff_files,
                                          retry_with_fallback_models)
 from pr_agent.algo.token_handler import TokenHandler
 from pr_agent.algo.utils import ModelType, load_yaml
+from pr_agent.beekeeper.guidelines.beekeeper_style_guidelines_fetcher import BeekeeperStyleGuidelinesFetcher
+from pr_agent.beekeeper.tools.beekeeper_pr_best_practices_formatter import BeekeeperPRBestPracticesFormatter
 from pr_agent.config_loader import get_settings
 from pr_agent.git_providers import get_git_provider_with_context
 from pr_agent.git_providers.git_provider import get_main_pr_language, GitProvider
@@ -54,9 +56,6 @@ class BeekeeperPRBestPracticesCheck:
             get_settings().set("config.enable_ai_metadata", False)
             get_logger().debug(f"AI metadata is disabled for this command")
 
-        # Fetch or define best practices (example hardcoded, replace with actual source)
-        self.best_practices = self._get_best_practices()
-
         self.vars = {
             "title": self.git_provider.pr.title,
             "branch": self.git_provider.get_pr_branch(),
@@ -67,11 +66,13 @@ class BeekeeperPRBestPracticesCheck:
             "num_code_suggestions": num_checks,
             "extra_instructions": get_settings().pr_code_suggestions.extra_instructions,
             "commit_messages_str": self.git_provider.get_commit_messages(),
-            "best_practices": self.best_practices,
             "is_ai_metadata": get_settings().get("config.enable_ai_metadata", False),
             "date": datetime.now().strftime('%Y-%m-%d'),
             "duplicate_prompt_examples": get_settings().config.get('duplicate_prompt_examples', False),
         }
+
+        self.best_practices = self._get_best_practices()
+        self.vars["best_practices"] = self.best_practices
         self.pr_best_practices_prompt_system = get_settings().beekeeper_pr_best_practices_prompt.system
 
         self.token_handler = TokenHandler(
@@ -85,17 +86,23 @@ class BeekeeperPRBestPracticesCheck:
         self.progress += """\nWork in progress ...<br>\n<img src="https://codium.ai/images/pr_agent/dual_ball_loading-crop.gif" width=48>"""
         self.progress_response = None
 
-    def _get_best_practices(self) -> str:
-        # TODO: Example hardcoded best practices; replace with actual retrieval logic from Architecture Repo
-        return (
-            "- **[Security-001]** Input MUST be validated before use.\n"
-            "- **[Performance-001]** Database queries SHOULD use indexes.\n"
-            "- **[Code Quality-001]** Functions MUST NOT exceed 50 lines.\n"
-            "- **[Web-001]** HTTP responses MUST set Content-Type headers.\n"
-        )
-        # Example dynamic retrieval (uncomment and adapt as needed):
-        # from some_module import fetch_best_practices_from_repo
-        # return fetch_best_practices_from_repo()
+    def _get_best_practices(self):
+        try:
+            fetcher = BeekeeperStyleGuidelinesFetcher()
+            # Get file extensions from the PR files
+            file_paths = self.git_provider.get_files()
+            # Fetch guidelines relevant to the PR's file types
+            relevant_guidelines = fetcher.get_relevant_guidelines(file_paths)
+            if not relevant_guidelines:
+                get_logger().warning(f"No relevant guidelines found for PR files")
+                return ''
+
+            # Format the guidelines into the expected format
+            return BeekeeperPRBestPracticesFormatter().format_guidelines(relevant_guidelines)
+        except Exception as e:
+            get_logger().error(f"Error fetching best practices, falling back to defaults: {e}")
+            return ''
+
 
     async def run(self):
         try:
