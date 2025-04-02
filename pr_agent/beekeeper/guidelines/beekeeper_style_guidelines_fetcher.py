@@ -6,8 +6,8 @@ import markdown
 import html2text
 
 from pr_agent.beekeeper.github.github_helpers import get_all_files_of_type_in_repo_recursive
+from pr_agent.beekeeper.guidelines import BEEKEEPER_GLOBALLY_RELEVANT_GUIDELINES_PATHS
 
-BEEKEEPER_GUIDELINES_FILENAME_FORMAT = '[random-name].[target-extension].md'
 
 class BeekeeperStyleGuidelinesFetcher:
     def __init__(
@@ -104,7 +104,8 @@ class BeekeeperStyleGuidelinesFetcher:
                     continue
 
                 # Also consider general guidelines
-                if "general" in guideline_path.lower() or "common" in guideline_path.lower():
+                path_parts = guideline_path.lower().split('/')
+                if any(global_path in path_parts for global_path in BEEKEEPER_GLOBALLY_RELEVANT_GUIDELINES_PATHS):
                     relevant_guidelines[guideline_path] = content
 
             return relevant_guidelines

@@ -98,9 +98,12 @@ class BeekeeperPRBestPracticesCheck:
             if not relevant_guidelines:
                 get_logger().warning(f"No relevant guidelines found for PR files")
                 return ''
+            get_logger().info(f"Found {len(relevant_guidelines)} relevant guidelines for PR files")
 
             # Format the guidelines into the expected format
-            return BeekeeperPRBestPracticesFormatter().format_guidelines(relevant_guidelines)
+            formatted_guidelines =  BeekeeperPRBestPracticesFormatter().format_guidelines(relevant_guidelines)
+            get_logger().debug(f"Formatted guidelines: {formatted_guidelines}")
+            return formatted_guidelines
         except Exception as e:
             get_logger().error(f"Error fetching best practices, falling back to defaults: {e}")
             return ''

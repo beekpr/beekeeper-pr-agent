@@ -53,7 +53,9 @@ def main():
         get_settings().set("CONFIG.model", "anthropic/claude-3-7-sonnet-20250219")
     elif openai_key:
         get_settings().set("openai.key", openai_key)
-        get_settings().set("CONFIG.model", "gpt-4-turbo")
+        get_settings().set("CONFIG.model", "o1")
+
+    get_settings().set("pr_code_suggestions.max_context_tokens", 100000)
 
     # Add required PR best practices settings
     get_settings().set("pr_best_practices", {
