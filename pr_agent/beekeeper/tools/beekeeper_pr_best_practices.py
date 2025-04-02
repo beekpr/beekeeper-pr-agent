@@ -90,7 +90,9 @@ class BeekeeperPRBestPracticesCheck:
         try:
             fetcher = BeekeeperStyleGuidelinesFetcher()
             # Get file extensions from the PR files
-            file_paths = self.git_provider.get_files()
+            file_paths = [f.filename for f in self.git_provider.get_files()]
+            get_logger().info(f"File paths in PR: {file_paths}")
+
             # Fetch guidelines relevant to the PR's file types
             relevant_guidelines = fetcher.get_relevant_guidelines(file_paths)
             if not relevant_guidelines:
