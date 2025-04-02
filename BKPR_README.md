@@ -46,3 +46,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
+
+
+### Test Scripts
+
+```shell
+# from project root
+export GITHUB_TOKEN={YOUR_GITHUB_TOKEN}
+export ANTHROPIC_API_KEY={YOUR_ANTHROPIC_API_KEY}
+
+pip install -e .
+python3 scripts/beekeeper_run_best_practices_check.py https://github.com/beekpr/beekeeper-analytics/pull/546
+
+
+```
