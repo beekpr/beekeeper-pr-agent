@@ -3,17 +3,12 @@ import os
 import sys
 from pathlib import Path
 
-# Add the project root to the Python path
-# project_root = Path(__file__).parent.parent.absolute()
-# sys.path.insert(0, str(project_root))
 
-# Now import from pr_agent
 from pr_agent import cli
 from pr_agent.config_loader import get_settings
 
 
 def main():
-    # Get GitHub token from environment
     github_token = os.environ.get("GITHUB_TOKEN")
     if not github_token:
         print("Error: GITHUB_TOKEN environment variable is not set")
@@ -44,27 +39,17 @@ def main():
     command = "/beekeeper_best_practices"
 
     # Configure settings
-    get_settings().set("CONFIG.git_provider", provider)
+    get_settings().set("config.git_provider", provider)
     get_settings().set("github.user_token", github_token)
 
     # Configure model based on available API keys
     if anthropic_key:
         get_settings().set("anthropic.key", anthropic_key)
-        get_settings().set("CONFIG.model", "anthropic/claude-3-7-sonnet-20250219")
+        get_settings().set("config.model", "anthropic/claude-3-7-sonnet-20250219")
     elif openai_key:
         get_settings().set("openai.key", openai_key)
-        get_settings().set("CONFIG.model", "o1")
+        get_settings().set("config.model", "o1")
 
-    get_settings().set("pr_code_suggestions.max_context_tokens", 100000)
-
-    # Add required PR best practices settings
-    get_settings().set("pr_best_practices", {
-        "auto_extended_mode": False,
-        "persistent_comment": True,
-        "max_history_len": 4,
-        "max_number_of_calls": 3,
-        "parallel_calls": True
-    })
 
     print(f"Running best practices check for {pr_url}...")
     cli.run_command(pr_url, command)

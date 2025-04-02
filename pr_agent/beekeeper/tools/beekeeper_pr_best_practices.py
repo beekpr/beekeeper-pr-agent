@@ -30,15 +30,15 @@ class BeekeeperPRBestPracticesCheck:
             self.git_provider.get_languages(), self.git_provider.get_files()
         )
 
-        if get_settings().pr_code_suggestions.max_context_tokens:
-            MAX_CONTEXT_TOKENS = get_settings().pr_code_suggestions.max_context_tokens
+        if get_settings().pr_best_practices.max_context_tokens:
+            MAX_CONTEXT_TOKENS = get_settings().pr_best_practices.max_context_tokens
             if get_settings().config.max_model_tokens > MAX_CONTEXT_TOKENS:
                 get_logger().info(f"Setting max_model_tokens to {MAX_CONTEXT_TOKENS} for PR best practices check")
                 get_settings().config.max_model_tokens_original = get_settings().config.max_model_tokens
                 get_settings().config.max_model_tokens = MAX_CONTEXT_TOKENS
 
         self.is_extended = self._get_is_extended(args or [])
-        num_checks = int(get_settings().pr_code_suggestions.num_code_suggestions_per_chunk)
+        num_checks = int(get_settings().pr_best_practices.num_code_suggestions_per_chunk)
 
         self.ai_handler = ai_handler()
         self.ai_handler.main_pr_language = self.main_language
@@ -64,7 +64,7 @@ class BeekeeperPRBestPracticesCheck:
             "diff": "",  # empty diff for initial calculation
             "diff_no_line_numbers": "",  # empty diff for initial calculation
             "num_code_suggestions": num_checks,
-            "extra_instructions": get_settings().pr_code_suggestions.extra_instructions,
+            "extra_instructions": get_settings().pr_best_practices.extra_instructions,
             "commit_messages_str": self.git_provider.get_commit_messages(),
             "is_ai_metadata": get_settings().get("config.enable_ai_metadata", False),
             "date": datetime.now().strftime('%Y-%m-%d'),
@@ -82,7 +82,7 @@ class BeekeeperPRBestPracticesCheck:
             get_settings().beekeeper_pr_best_practices_prompt.user
         )
 
-        self.progress = "## Checking PR for Best Practices Compliance\n\n"
+        self.progress = "## Beekeeper PR Guidelines Check 📏\n\n"
         self.progress += """\nWork in progress ...<br>\n<img src="https://codium.ai/images/pr_agent/dual_ball_loading-crop.gif" width=48>"""
         self.progress_response = None
 
@@ -141,6 +141,7 @@ class BeekeeperPRBestPracticesCheck:
 
             if get_settings().config.publish_output:
                 self.git_provider.remove_initial_comment()
+
                 pr_body = self._generate_pr_comment(data)
                 get_logger().debug(f"PR output", artifact=pr_body)
 
@@ -148,7 +149,7 @@ class BeekeeperPRBestPracticesCheck:
                     self.publish_persistent_comment_with_history(
                         self.git_provider,
                         pr_body,
-                        initial_header="## PR Best Practices Check 📏",
+                        initial_header="## Beekeeper PR Guidelines Check 📏",
                         update_header=True,
                         name="best_practices",
                         final_update_message=False,
@@ -216,13 +217,21 @@ class BeekeeperPRBestPracticesCheck:
         environment = Environment(undefined=StrictUndefined)
         system_prompt = environment.from_string(self.pr_best_practices_prompt_system).render(variables)
         user_prompt = environment.from_string(get_settings().beekeeper_pr_best_practices_prompt.user).render(variables)
-        response, _ = await self.ai_handler.chat_completion(
-            model=model,
-            temperature=get_settings().config.temperature,
-            system=system_prompt,
-            user=user_prompt
-        )
-        return self._prepare_pr_best_practices(response)
+
+        get_logger().info(f"Sending request to AI model {model} for best practices check...")
+        start_time = datetime.now()
+        try:
+            response, _ = await self.ai_handler.chat_completion(
+                model=model,
+                temperature=get_settings().config.temperature,
+                system=system_prompt,
+                user=user_prompt
+            )
+            get_logger().info(f"Received AI response in {(datetime.now() - start_time).total_seconds()} seconds")
+            return self._prepare_pr_best_practices(response)
+        except Exception as e:
+            get_logger().error(f"Error getting AI prediction: {e}")
+            raise
 
     def _prepare_pr_best_practices(self, predictions: str) -> Dict:
         data = load_yaml(
