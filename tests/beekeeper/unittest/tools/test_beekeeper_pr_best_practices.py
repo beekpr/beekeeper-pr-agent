@@ -28,14 +28,13 @@ class TestBeekeeperPRBestPracticesCheck(unittest.TestCase):
         settings_mock = MagicMock()
         settings_mock.pr_best_practices = MagicMock()
         settings_mock.pr_best_practices.auto_extended_mode = False
-        # Add this line to provide a concrete integer for max_context_tokens
         settings_mock.pr_best_practices.max_context_tokens = 80000
         settings_mock.pr_code_suggestions = MagicMock()
         settings_mock.pr_code_suggestions.num_code_suggestions_per_chunk = 5
         settings_mock.pr_code_suggestions.max_context_tokens = 100000
         settings_mock.pr_code_suggestions.extra_instructions = ""
         settings_mock.config = MagicMock()
-        settings_mock.config.max_model_tokens = 100000  # No need for int() here
+        settings_mock.config.max_model_tokens = 100000
         settings_mock.beekeeper_pr_best_practices_prompt = MagicMock()
         settings_mock.beekeeper_pr_best_practices_prompt.system = "System prompt"
         settings_mock.beekeeper_pr_best_practices_prompt.user = "User prompt"
